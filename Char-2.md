@@ -32,11 +32,50 @@
 生成器都是Iterator对象,但list, dict, str 虽然是Iterable, 却不是Iterator.   
 把list, dict, str等Iterable 变成 Iterator 可以使用iter()函数:   
 ```
-
+from collections import *
+isinstance(iter([]), Iterator)
+True
+isinstance(iter('abc'), Iterator)
+True
 ```   
 
+#### 总结
+* 凡是可作用于for循环的对象都是Iterable类型;
+* 凡是可作用于next()函数的对象都是Iterator类型
+* 集合数据类型如list, dict, str 等是iterable 但不是iterator,不过可以通过iter()函数获得一个iterator对象.
+   
 ### 1.6 闭包
+#### 1.函数引用
+```
+def test1():
+    print("----in test1 func----")
 
+# 调用函数
+test1()
+
+# 引用函数
+ret = test1
+
+print(id(ret))
+print(id(test1))
+
+# 通过引用调用函数
+ret()
+
+```   
+运行结果:   
+```
+----in test1 func----
+4404593936
+4404593936
+----in test1 func----
+```    
+   
+#### 2. 什么是闭包
+```
+
+
+```
 
 ### 1.7 装饰器
 
