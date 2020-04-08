@@ -30,16 +30,126 @@ P.sex
 这时候就发现问题了,我们定义的类里面没有sex这个属性啊!怎么回事呢?这就是动态语言的魅力和坑!这里实际上就是动态给实例绑定属性!
    
 #### 3. 运行的过程中给类绑定(添加)属性
+```
+class Person(object):
+    def __init__(self, newName, newAge):
+        self.name = newName
+        self.age = newAge
 
 
+laowang = Person("老王","30")
+print(laowang.name)
+print(laowang.age)
+
+laowang.addr = "beijing"  # 给对象添加属性
+print(laowang.addr)
+
+laozhao = Person("laozhao", 18)
+#print(laozhao.addr)
+
+Person.num = 100    # 给类添加属性
+
+print(laozhao.num)
+print(laowang.num)
+```   
+   
 
 
 ### 1.3 __slots__
+现在我们终于明白了,动态语言和静态语言的不同   
+动态语言: 可以在运行的过程中修改代码   
+静态语言: 编译时已经搞定好代码,运行过程中不能修改   
+如果我们想要限制实例的属性怎么办? 比如,只允许对Person实例添加name和age属性.   
+为了达到限制的目的,Python允许在定义class的时候,定义一个特殊的__slots__变量,来限制该实例能添加的属性:   
+![slots](images/2-2.png)
+   
+#### 注意:
+* 使用__slots__要注意,__slots__定义的属性仅对当前类实例起作用,对继承的子类是不起作用的
+   
+
 
 
 ### 1.4 生成器
+#### 1.什么是生成器
+通过列表生成式,我们可以直接创建一个列表,但是,受到内存限制,列表的容量肯定是有限的.而且,创建一个包含100万
+个元素的列表,不仅占用很大的存储空间,如果我们仅仅需要访问前面几个元素,那后面绝大多数元素占用的空间都白白
+浪费了,所以,如果列表元素可以按照某种算法推算出来,那我们是否可以在循环的过程中不断推算出后续的元素呢?这样
+就不必创建完整的list,从而节省大量的空间.**在Python中,这种一边循环一边计算的机制,称为:生成器 Generator**
+   
+#### 2.创建生成器方法1
+要创建一个生成器,有很多种方法,第一种方法很简单,只要把一个列表生成式的[]改成()   
+```
+>>> L = [x*2 for x in range(5)]
+>>> L
+[0, 2, 4, 6, 8]
+>>> G = ( x*2 for x in range(5))
+>>> G
+<generator object <genexpr> at 0x101633050>
+>>> 
 
+```   
+   
+创建 L 和 G 的区别在于最外层的[]和(), L 是一个列表, 而 G 是一个生成器. 我们可以直接打印出 L 的每一个元素,
+但我们怎么打印出 G 的每一个元素呢? 如果要一个一个打印出来,可以通过next()函数获得生成器的下一个返回值:   
+```
+>>> G
+<generator object <genexpr> at 0x101633050>
+>>> next(G)
+0
+>>> next(G)
+2
+>>> next(G)
+4
+>>> next(G)
+6
+>>> next(G)
+8
+>>> next(G)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+StopIteration
+>>> 
 
+```
+
+#### 3. 创建生成器的方式2
+generator非常强大.如果推算的算法比较复杂,用类似列表生成式的for 循环无法实现的时候,还可以用函数来实现.   
+比如,著名的斐波拉契数列(Fibonacci), 除第一个和第二个数外,任意一个数都可由两个数相加得到:   
+1,1,2,3,5,8,13,21,34,...   
+斐波那契数列用列表生成式写不出来,但是,用函数把它打印出来却很容易:   
+```
+>>> def fib(times):
+...     n = 0
+...     a,b = 0,1
+...     while n<times:
+...         print(b)
+...         a,b = b, a+b
+...         n+=1
+...     return 'done'
+... 
+>>> fib(5)
+1
+1
+2
+3
+5
+'done'
+
+```   
+```
+def creatNum():
+    print("-----start-----")
+    a,b = 0,1
+    for i in range(5):
+        yield b     
+        a,b = b,a+b
+    print("----stop-----")
+
+createNum()
+```   
+
+      
+   
 ### 1.5 迭代器
 迭代是访问集合元素的一种方式,迭代器是一个记住遍历的位置的对象.迭代器对象从集合的第一个元素开始访问,直到,直到所有的元素被访问完结束.迭代器只能往前不能往后.
    
