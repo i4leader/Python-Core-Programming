@@ -9,6 +9,12 @@ def creatNum():
         print("333333333")
     print("----stop-----")
 
+
+
 a = creatNum()
-next(a)
-next(a)
+
+for num in a:
+    print(num)
+
+
+

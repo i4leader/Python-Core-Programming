@@ -145,10 +145,60 @@ def creatNum():
         a,b = b,a+b
     print("----stop-----")
 
-createNum()
-```   
+a = createNum()
 
-      
+# 方式一
+for num in a:   #迭代器是可以用for循环来打印的.   
+    print(num)
+
+# 方式二
+ret = a.__next__()
+print(ret)
+
+#注意:
+#next(a)
+#a.__next__()
+#以上两种方式是一样的
+
+```   
+   
+#### 4. send
+例子: 执行到yield时,gen函数作用暂时保存,返回i的值; temp接受下次c.send("python"), send发送过来的值,
+c.next()等价c.send(None)   
+```
+def gen():
+    i = 0
+    while i < 5:
+        temp = yield i
+        print(temp)
+        i+=1
+       
+```   
+   
+**使用Next函数**
+   
+```
+f = gen()
+next(f)
+0
+next(f)
+None
+1
+f.__next__()
+None
+2
+f.send(None)
+None
+3
+f.send(None)
+None
+4
+```   
+   
+![send](images/2-3.png)      
+   
+   
+   
    
 ### 1.5 迭代器
 迭代是访问集合元素的一种方式,迭代器是一个记住遍历的位置的对象.迭代器对象从集合的第一个元素开始访问,直到,直到所有的元素被访问完结束.迭代器只能往前不能往后.
