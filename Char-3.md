@@ -262,3 +262,156 @@ result = some_function_that_takes_arguments(
 * 在核心Python发布的代码应该总是使用UTF-8(ASCII在Python2) .
 * Python3(默认UTF-8)不应有编码声明.  
    
+#### 导入在单独行
+* Yes
+   
+```
+import os
+import sys
+from subprocess import Popen, PIPE 
+```   
+   
+* No
+   
+```
+import sys, os
+```   
+   
+* 导入始终在文件的顶部,在模块注释和文档字符串之后,在模块全部变量和常量之前. 
+* 导入顺序如下: 标准库进口,相关的第三方库,本地库.各组的导入之间要有空行.
+
+#### 禁止使用通配符导入.
+通配符导入(from import *)应该避免,因为它不清楚命名空间有哪些名称,混淆读者和许多自动化的工具.
+    
+#### 字符串引用   
+* Python 中单引号字符串和双引号字符串都是相同的.注意尽量避免在字符串中的反斜杠以提高可读性.
+* 根据PEP 257,三个引号都使用双引号.      
+   
+#### 括号里边避免空格   
+```
+# 括号里边避免空格
+# Yes
+spam(ham[1], {eggs: 2})
+# No
+spam( ham[ 1 ], {eggs: 2 } )
+
+```   
+   
+#### 逗号,冒号,分好之前避免空格
+```
+# 逗号,冒号,分号之前避免空格
+# Yes
+if x == 4: print x, y; x, y = y, x
+# No
+if x == 4 ; print x , y ; x , y = y , x
+```   
+   
+#### 索引操作中的冒号当做操作符处理前后要有同样的空格(一个空格或者没有空格,个人建议是没有.)
+```
+# Yes
+ham[1:9], ham[1:9:3], ham[:9:3], ham[1::3], ham[1:9:]
+ham[lower:upper], ham[lower,upper:], ham[lower::step]
+ham[lower+offset : upper+offset]
+ham[: upper_fn(x) : step_fn(x)], ham[:: step_fn(x)]
+ham[lower + offset : upper + offset]
+# No
+ham[lower + offset:upper + offset]
+ham[1: 9], ham[1: 9], ham[1:9 :3]
+ham[lower : : upper]
+ham[ : upper]
+
+```   
+   
+#### 函数调用的右括号之前不能有空格
+```
+# Yes
+spam(1)
+dct['key'] = lst[index]
+
+# No
+spam (1)
+dct ['key'] = lst [index]
+```   
+   
+#### 赋值等操作符前后不能因为对齐而添加多个空格
+```
+# Yes
+x = 1
+y = 2
+long_variable = 3
+
+# No
+x             =   1
+y             =   2
+long_variable =   3
+
+```   
+
+#### 二元运算符两边放置一个空格
+涉及=,符合操作符(+=,-=等),比较(==, <, >, !=, <>, <=, >=, in, not in, is, not is),布尔(and, or, not) .
+     
+优先级高的运算符或操作符的前后不建议有空格.   
+   
+#### 关键字参数和默认值参数的前后不要加空格
+```
+# Yes
+def complex(real, imag=0.0):
+    return magic(r=real, i=imag)
+
+# No
+def complex(real, imag = 0.0):
+    return magic(r = real, i = imag)
+
+```
+   
+#### 通常不推荐复合语句(Compound statements: 多条语句写在同一行).
+```
+# Yes
+if foo == 'blah':
+    do_blah_thing()
+do_one()
+do_two()
+
+# No
+if foo == 'blah': do_blah_thing()
+do_one(); do_two()
+
+```   
+   
+#### 尽管有时可以在if/for/while的同一行跟一小段代码,但绝不要跟多个子句,并尽量避免换行.
+```
+# No
+if foo == 'blah': do_blah_thing()
+for x in lst: total += x
+while t < 10: t = delay()
+更不是:
+
+# No
+if foo == 'blah': do_blah_thing()
+else: do_non_blah_thing()
+
+try: something()
+finally: cleanup()
+
+do_one(); do_two(); do_three(long, argument,
+                             list, like, this)
+
+if foo == 'blah': one(); two(); three()
+
+```   
+   
+#### 避免采用的名字
+决不要用字符'l'(小写字母el),'O'(大写字母oh),或'I'(大写字母eye)作为单个字符的变量名.一些字体中,这些字符不能和数字1和0区别.用'L'代替'l'时.
+      
+#### 包和模块名
+模块名要简短,全部用小写字母,可使用下划线以提高可读性.包名和模块名类似,但不推荐使用下划线.
+      
+   
+   
+   
+   
+
+
+
+
+      
