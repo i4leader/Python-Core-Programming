@@ -330,13 +330,37 @@ Process 之间有时需要通信,操作系统提供了很多机制来实现进�
 #### 1.Queue的使用
 可以使用multiprocessing模块的Queue实现多进程之间的数据传递,Queue本身是一个消息队列程序,首先用一个小实例来演示一下Queue的工作原理:   
 ```
+#coding=utf-8
+from multiprocessing import Queue
+q=Queue(3) #初始化一个Queue对象,最多可接受三条put消息
+q.put("消息1")
+q.put("消息2")
+print(q.full()) #false
+q.put("消息3")
+print(q.full()) #true
 
-```
+# 因为消息队列已满下面的try都会抛出异常,第一个try会等待2秒后再抛出异常,第二个try会立刻抛出异常
+try:
+    q.put("消息4",True,2)
+except:
+    print("消息队列已满,现有消息数量:%s"%q.qsize())
+
+try:
+    q.put_nowait("消息4")
+except:
+    print("消息队列已满,现有消息数量:%s"%q.qsize())
+
+# 推荐的方式,先判断消息队列是否已满,再写入
+if not q.full():
+    q.put_nowait("消息4")
+
+# 读取消息时,先判断消息队列是否为空,再读取
+if not q.empty():
+    for i in range(q.size()):
+        print(q.get_nowait())
+
+``` 
    
-运行结果:   
-```
-
-```   
    
 **说明:**
 初始化Queue()对象时(例如: q=Queue()) 若括号中没有指定最大可接受的消息数量,或数量   那么就代表可接受的
@@ -349,7 +373,7 @@ Process 之间有时需要通信,操作系统提供了很多机制来实现进�
 1) 如果block使用默认值,且没有设置timeout(单位秒),消息队列如果已经没有空间写入,
 
 2) 如果block值为false, 消息队列如果为空,就会立即抛出'Queue Empty'异常
-* Queue.get_nowait(),相当Queue.get(False)
+* Queue.get_nowait(),相当与Queue.get(False)
 * Queue.put([item,[block],timeout])
       
    
