@@ -90,23 +90,248 @@ else:
 ```   
    
    
-### 1.4 多进程修改全部变量
+### 1.4 多进程修改全局变量
+```
+import os
+import time
 
+g_num = 100
+
+ret = os.fork()
+if ret == 0:
+    print('----process-1-----')
+    g_num += 1
+    print('----process-1 g_num=%d ---'%g_num)
+
+else:
+
+    time.sleep(3)
+    print('----process-2-----')
+    print('----process-2 g_num=%d ---'%g_num)
+```   
+   
+运行结果:   
+![4-5](images/4-1.png)      
+   
+* 全局变量在进程之间不共享   
 
 ### 1.5 多次fork的问题
+如果有一个程序,有两次的fork函数的调用,是否就有3个进程呢?
+   
+```
+import os
+import time
+
+# 父进程
+ret = os.fork()
+if ret == 0:
+    # 子进程
+    print("--1--")
+else:
+    # 父进程
+    print("--2--")
+
+# 父子进程
+ret = os.fork()
+if ret == 0:
+    # 孙子
+    print('--11--')
+else:
+    # 儿子
+    print('--22--')
 
 
+```   
+运行结果:   
+![fork](images/4-2.png)   
+   
+   
+   
+   
 ### 1.6 进程的创建-multiprocessing
+   
+```
+#coding=utf-8
+from multiprocessing import Process
+import os
 
+# 子进程要执行的代码
+def run_proc(name):
+    print('子进程运行中,name= %s,pid=%d...'%(name, os.getpid()))
+
+if __name__=='__main__':
+    print('父进程 %d.'%os.getpid())
+    p = Process(target=run_proc, args=('test',))
+    print('子进程将要执行')
+    p.start()
+    p.join()
+    print('子进程已结束')
+```   
+运行结果:   
+![fork](images/4-3.png)       
+   
+##### Process 语法结构说明:
+Process 类的参数说明:   
+Process([group[, target[, name[, args[, kwargs]]]]])
+* target: 表示这个进程实例所调用对象;
+* args: 表示调用对象的位置参数元祖;   
+* kwargs: 表示调用对象的关键字参数字典;
+* name: 为当前进程实例的别名;
+* group: 大多数情况下用不到;
+   
+Process类常用方法:
+* is_alive(): 判断进程实例是否还在执行;
+* join([timeout]): 是否等待进程实例执行结果,或等待多少秒;
+* start(): 启动进程实例(创建子进程);
+* run(): 如果没有给的tartget参数,对这个对象调用start()方法时,就将执行对象中的run()方法;
+* terminate(): 不管任务是否完成,立即终止;      
+    
+Process类的常用属性:
+* name: 当前进程实例别名,默认为Process-N, N为从1开始递增的整数;
+* pid: 当前进程实例的PID值;   
+   
+**实例1**
+```
+#coding=utf-8
+from multiprocessing import Process
+import os
+from time import sleep
+
+# 子进程要执行的代码
+def run_proc(name, age, **kwargs):
+    print('子进程运行中,name= %s, age=%d, pid=%d...'%(name, age, os.getpid()))
+    print(kwargs)
+    sleep(0.5)
+
+if __name__=='__main__':
+    print('父进程 %d.'%os.getpid())
+    p = Process(target=run_proc, args=('test', 19), kwargs={'m':20})
+    print('子进程将要执行')
+    p.start()   # 让这个进程开始执行run_proc函数里的代码
+    p.join() # 堵塞
+    print('子进程已结束')
+```
+   
+运行结果:   
+![fork](images/4-4.png)       
+   
 
 ### 1.7 进程的创建-Process子类
+创建新的进程还能够使用类的方式,可以自定义一个类,继承Process类,每次实例化这个类的时候,就等同于实例化一个进程对象,请看下面的实例:   
+```
+#coding=utf-8
+from multiprocessing import Process
+import time
+import os
 
+# 继承Process类
+class Process_Class(Process):
+    # 因为Process类本身也有__init__方法,这个子类相当于重写了这个方法.
+    # 因为这样就会带来一个问题,我们并没有完全的初始化一个Process类,所以就不能使用从这个类继承的一些方法
+    # 最好的方法就是将继承类本身传递给Process.__init__方法,完成这些初始化操作
+    def __init__(self, interval):
+        Process.__init__(self)
+        self.interval = interval
+
+    # 重写了Process类的run()方法
+    def run(self):
+        print("子进程(%s) 开始执行,父进程 (%s)"%(os.getpid(),os.getppid()))
+        t_start= time.time()
+        time.sleep(self.interval)
+        t_stop = time.time()
+        print("(%s)执行结束,耗时%0.2f秒"%(os.getpid(),t_stop-t_start))
+
+
+if __name__=='__main__':
+    t_start = time.time()
+    print("当前程序进程(%s)"%os.getpid())
+    p1 = Process_Class(2)
+    # 对一个不包含target属性的Process类执行start()方法,就会运行这个类中的run()方法,所以这里会执行
+    p1.start()
+    p1.join()
+    t_stop = time.time()
+    print("(%s)执行结束,耗时%0.2f"%(os.getpid(),t_stop-t_start))
+
+```   
 
 ### 1.8 进程池Pool
+当需要创建的子进程数量不多时,可以直接利用multiprocessing中的Process动态生成多个进程,但如果是上百甚至上千个目标,
+手动的去创建进程的工作量巨大,此时就可以用到multiprocessing模块提供的Pool方法.   
+初始化Pool时,可以指定一个最大进程数,当有新的请求提交到Pool中时,如果池还没有满,那么就会创建一个新的进程用来执行该请求;
+但如果池中的进程数已经达到指定的最大值,那么该请求就会等待,直到池中的进程结束,才会创建新的进程来执行,请看下面的实例:   
+```
+#coding=utf-8
+from multiprocessing import Pool
+import time,os,random
 
+def worker(msg):
+    t_start = time.time()
+    print("%s开始执行,进程号为%d"%(msg,os.getpid()))
+    # random.random()随机生成0~1之间的浮点数
+    time.sleep(random.random()*2)
+    t_stop = time.time()
+    print(msg,"执行完毕,耗时%0.2f"%(t_stop-t_start))
 
+po=Pool(3)  # 定义一个进程池,最大进程数3
+for i in range(0,10):
+    # Pool.apply_async(要调用的目标,(传递给目标的参数元祖,))
+    # 每次循环将会用空闲出来的子进程去调用目标
+    po.apply_async(worker, (i,))
+
+print("-----start-----")
+po.close()  # 关闭进程池,关闭后po不再接收新的请求
+po.join()   # 等待po中所有子进程执行完毕,必须放到close语句之后
+print('-----end-----')
+```   
+运行结果:   
+![ProcessPool](images/4-5.png)
+   
+multiprocessing.Pool常用函数解析:  
+* apply_async(func[, args[, kwds]]) : 使用非阻塞方式调用func (并行执行,阻塞方式必须等待上一个进程退出
+才能执行下一个进程), args为传递给func的参数列表, kwds为传递给func的关键字参数列表;
+* apply(func[, args[, kwds]]): 使用阻塞方式调用func
+* close(): 关闭Pool,使其不再接受新的任务
+* terminating(): 不管任务是否完成,立即终止;
+* join(): 主进程阻塞,等待子进程的退出,必须在close或terminate之后使用;   
+   
+   
+#### apply 堵塞式
+```
+#coding=utf-8
+from multiprocessing import Pool
+import time,os,random
+
+def worker(num):
+    for i in range(5):
+        print("===pid=%d==num=%d="%(os.getpid(),num))
+        time.sleep(1)
+
+# 3 表示进程池中对应有3个进程一起执行
+pool = Pool(3)
+
+for i in range(10):
+    print("===%d==="%i)
+    # 向进程池中添加任务
+    # 注意:如果添加的任务数量超过了 进程池中进程的个数的话,那么不会导致添加不进去
+    # 添加到进程池中的任务,如果还没有被执行的话,那么此时,他们会等待进程池中的进程完成一个任务之后,会自动去用刚刚的那个进程,完成当前的新任务
+    pool.apply(worker, (i,))  #堵塞
+
+pool.close()    # 关闭进程池,相当于不能再添加新任务了
+pool.join()     
+   
+```   
+   
+运行结果:   
+![apply-congestion](images/4-6.png)
+   
 ### 1.9 进程间通信-Queue
+Process 之间有时需要通信,操作系统提供了很多机制来实现进程间的通信.
 
+#### 1.Queue的使用
+可以使用multiprocessing模块的Queue实现多进程之间的数据传递,Queue本身是一个消息队列程序,首先用一个小实例来演示一下Queue的工作原理:   
+```
+
+```
 
 
 ## 2. 线程
