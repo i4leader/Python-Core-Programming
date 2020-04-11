@@ -385,14 +385,153 @@ if not q.empty():
 #### 2.Queue实例
 我们以Queue为例,在父进程中创建两个子进程,一个往Queue里写数据,一个从Queue里读数据   
 ```
+#coding=utf-8
+from multiprocessing import Queue
+from multiprocessing import Process
+import os, random, time
+
+# 写数据进程执行的代码:
+def write(q):
+    for value in ['A', 'B', 'C']:
+        print("Put %s to queue..."%value)
+        q.put(value)
+        time.sleep(random.random())
+
+# 读数据进程执行的代码:
+def read(q):
+    while True:
+        if not q.empty():
+            value = q.get(True)
+            print("Get %s from queue."%value)
+            time.sleep(random.random())
+        else:
+            break
+
+
+if __name__=='__main__':
+    # 父进程创建Queue,并传给各个子进程
+    q = Queue()
+    pw = Process(target=write, args=(q,))
+    pr = Process(target=read, args=(q,))
+    # 启动子进程pw,写入:
+    pw.start()
+    # waiting for pw end
+    pw.join()
+    # start sub_process pr, and read:
+    pr.start()
+    pr.join()
+    # pr process is dead loop, cannot wait for it's ending
+    print('')
+    print("All data are write and read, Done!")
 
 ```   
-
-
+运行结果:   
+![QUEUE](images/4-7.png)
+   
 
 #### 3.进程池中的Queue
+如果要使用Pool创建进程,就需要使用multiprocessing.Manager()中的Queue(),而不是multiprocessing.Queue(),
+否则会得到一条如下的错误信息:   
+RuntimeError: Queue objects should only be shared between processes through inheritancce.   
+下面的实例演示了进程池中的进程如何通信:   
+```
+#coding=utf-8
+
+# 修改import中的Queue为Manager
+from multiprocessing import Manager,Pool
+import os, random, time
 
 
+def reader(q):
+    print("reader启动(%s),父进程为(%s)"%(os.getpid(),os.getppid()))
+    for i in range(q.qsize()):
+        print("reader 从 Queue获取到的消息:%s"%q.get(True))
+
+def writer(q):
+    print("writer启动(%s),父进程为(%s)"%(os.getpid(),os.getppid()))
+    for i in "example":
+        q.put(i)
+
+if __name__=="__main__":
+    print("(%s) start"%os.getpid())
+    q = Manager().Queue()   # 使用Manager中的Queue来初始化
+    po=Pool()
+    # 使用阻塞模式创建进程,这样就不需要在reader中使用死循环了,可以让writer完全执行完成后,再用reader
+    po.apply(writer,(q,))
+    po.apply(reader, (q,))
+    po.close()
+    po.join()
+    print("(%s) End"%os.getpid())
+
+```   
+运行结果:   
+![QUEUE](images/4-8.png)   
+
+#### 多进程copy文件
+```
+#coding=utf-8
+from multiprocessing import Pool,Manager
+import os
+
+def copyFileTask(name, oldFolderName, newFolerName, queue):
+    "完成copy一个文件的功能"
+    # print(name)
+    fr = open(oldFolderName+'/'+name)
+    fw = open(newFolerName+'/'+name, "w")
+    # print("------")
+    content = fr.read()
+    fw.write(content)
+
+    fr.close()
+    fw.close()
+
+    queue.put(name)
+
+def main():
+
+    # 0. 获取永远要copy的文件夹的名字‘
+    oldFolderName = input("请输入文件夹的名字:")
+
+    # 1. 创建一个文件夹
+    newFolderName = oldFolderName+"-复件"
+    # print(newFolderName)
+    os.mkdir(newFolderName)
+
+    # 2. 获取old文件夹的所有的文件名字
+    fileNames = os.listdir(oldFolderName)
+    # print(fileNames)
+
+
+    # 3. 使用多进程的饿方式copy原文件夹中的所有文件到新的文件夹中
+    pool = Pool(5)
+    queue = Manager().Queue()
+
+    for name in fileNames:
+        pool.apply_async(copyFileTask, args=(name,oldFolderName,newFolderName,queue))
+
+    num = 0
+    allNum = len(fileNames)
+    while True:
+        queue.get()
+        num += 1
+        copyRate = num/allNum
+        print("\rcopy的进度是:%0.2f"%(copyRate*100), end="")
+        if num==allNum:
+            print("")
+            print("完成复制文件夹。")
+            break
+
+    pool.close()
+    pool.join()
+
+
+if __name__ == "__main__":
+    main()
+
+```   
+运行结果:   
+![多进程copy文件](images/4-9.png)
+   
 ## 2. 线程
 ***
 

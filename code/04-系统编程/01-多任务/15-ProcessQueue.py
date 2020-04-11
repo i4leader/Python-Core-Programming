@@ -1,5 +1,6 @@
 #coding=utf-8
 from multiprocessing import Queue
+from multiprocessing import Process
 import os, random, time
 
 # 写数据进程执行的代码:
@@ -27,4 +28,13 @@ if __name__=='__main__':
     pr = Process(target=read, args=(q,))
     # 启动子进程pw,写入:
     pw.start()
+    # waiting for pw end
+    pw.join()
+    # start sub_process pr, and read:
+    pr.start()
+    pr.join()
+    # pr process is dead loop, cannot wait for it's ending
+    print('')
+    print("All data are write and read, Done!")
+
 

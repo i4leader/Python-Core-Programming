@@ -2,33 +2,83 @@
 # 2. 线程
 ***
 ## 2.1 多线程-threading
+python 的thread模块是比较底层的模块,python的threading模块是对tread做了一些包装,可以更加方便的被使用   
+   
+### 1.使用threading模块
+**单线程执行**
+```
+#coding=utf-8
+import time
 
+def saySorry():
+    print("亲爱的,我错了,我能吃饭了吗?")
+    time.sleep(1)
 
+if __name__ == "__main__":
+    for i in range(5):
+        saySorry()
+```     
+   
+运行结果:   
+![singlethread](images/5-1.png)
+   
+**多线程执行**
+```
+#coding=utf-8
+import threading
+import time
+
+def saySorry():
+    print("亲爱的,我错了,我能吃饭了吗?")
+    time.sleep(1)
+
+if __name__ == "__main__":
+    for i in range(5):
+        t = threading.Thread(target=saySorry())
+        t.start() #启动线程,即让线程开始执行
+```   
+   
+运行结果:   
+![multithread](images/5-1.png)   
+   
+#### 说明
+1. 可以明显看出使用了多线程并发的操作,花费的时间短很多
+2. 创建好的线程,需要调用start()方法来启动   
+   
+   
 ## 2.2 threading 注意点
 
 
 ## 2.3 多线程-共享全局变量
 
 
-## 2.4 同步的概念
+## 2.4 进程,线程对比
+### 功能
+* 进程,能够完成多任务,比如在一台电脑上能够同时运行多个QQ
+* 线程,能够完成多个任务,比如一个QQ中的多个聊天窗口
+   
+   
+   
+   
+## 2.5 同步的概念
 
 
-## 2.5 互斥锁
+## 2.6 互斥锁
 
 
-## 2.6 多线程-非共享数据
+## 2.7 多线程-非共享数据
 
 
-## 2.7 死锁
+## 2.8 死锁
 
 
-## 2.8 同步应用
+## 2.9 同步应用
 
 
-## 2.9 条件变量
+## 2.10 条件变量
 
 
-## 2.10 生产者与消费者-条件变量
+## 2.11 生产者与消费者-条件变量
 ### 线程同步之条件变量
 互斥锁是最简单的线程同步机制,Python提供的Condition对象提供了对复杂线程同步问题的支持.   
 Condition被称为条件变量,除了提供与Lock类似的acquire和release方法外,还提供了wait和notify方法.   
@@ -68,7 +118,7 @@ Condition对象的构造函数可以接受一个Lock/Rlock对象作为参数,如
    
    
    
-## 2.11 生产者与消费者-队列
+## 2.12 生产者与消费者-队列
 前面介绍了互斥锁和条件变量解决线程间的同步问题,并使用条件变量同步机制解决了生产者与消费者问题.   
 让我们考虑更复杂的一种场景: 产品是各不相同的. 这时只记录一个数量就不够了,还需要记录每个产品的细节.
 很容易想到需要用一个容器将这些产品记录下来.   
@@ -90,6 +140,6 @@ Python的Queue模块中提供了同步的,线程安全的队列类,包括FIFO(�
    
    
 
-## 2.12 ThreadLocal
+## 2.13 ThreadLocal
 
 
