@@ -363,19 +363,24 @@ if not q.empty():
    
    
 **说明:**
-初始化Queue()对象时(例如: q=Queue()) 若括号中没有指定最大可接受的消息数量,或数量   那么就代表可接受的
+初始化Queue()对象时(例如: q=Queue()) 若括号中没有指定最大可接受的消息数量,或数量为负值, 那么就代表可接受的
 消息数量没有上限(直到内存的尽头);    
-* Queue.qsize() 返回当前队列包含的消息数量
-* Queue.empty() 如果队列为空,返回True,反之False.
-* Queue.full() 如果队列满了,返回True,反之False.
-* Queue.get(block[, timeout]): 获取队列中的一条消息,然后将其从队列中移除,block默认   True;
+* Queue.qsize() 返回当前队列包含的消息数量;
+* Queue.empty() 如果队列为空,返回True,反之False;
+* Queue.full() 如果队列满了,返回True,反之False;
+* Queue.get(block[, timeout]): 获取队列中的一条消息,然后将其从队列中移除,block默认值为True;
    
-1) 如果block使用默认值,且没有设置timeout(单位秒),消息队列如果已经没有空间写入,
+1) 如果block使用默认值,且没有设置timeout(单位秒),消息队列如果为空,此时程序将被阻塞 (停在读取状态),
+直到从消息列队读到消息为止,如果设置了timeout,则会等待timeout秒,若还没有读取到任何消息,则抛出"Queue.Empty"异常;
 
-2) 如果block值为false, 消息队列如果为空,就会立即抛出'Queue Empty'异常
-* Queue.get_nowait(),相当与Queue.get(False)
-* Queue.put([item,[block],timeout])
-      
+2) 如果block值为False, 消息队列如果为空,就会立刻抛出'Queue.Empty'异常:
+* Queue.get_nowait(),相当于Queue.get(False)
+* Queue.put([item,[block[,timeout]]); 将item消息写入队列,block默认值为True;
+   
+1) 如果block使用默认值,且没有设置timeout(单位秒),消息队列如果已经没有空间可写入,   将被阻塞(停在写入状态),
+直到从消息队列腾出空间为止,如果设置了timeout,则会等待timeout若还没空间,则抛出"Queue.Full"异常;   
+2) 如果block值为False,消息队列如果没有空间可写入,则会立刻抛出"Queue.Full"异常;   
+* Queue.put_nowait(item): 相当于Queue.put(item, False)        
    
 #### 2.Queue实例
 我们以Queue为例,在父进程中创建两个子进程,一个往Queue里写数据,一个从Queue里读数据   
