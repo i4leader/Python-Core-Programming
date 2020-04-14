@@ -269,20 +269,287 @@ print("---g_num=%d---"%g_num)
    
 ![nosleep](images/5-6.png)  
    
+### 2.5.2 什么是同步
+同步就是协同步调,按预定的先后次序进行运行.如:你说完,我再说.   
+"同"字从字面意思上容易裂为一起动作   
+其实不是,"同"字应是指协同,协助,互相配合.   
+如进程,线程同步,可理解为进程或线程A和B一块配合,A执行到一定程度时要依靠B的某个结果,于是停下来,示意B运行;B依言执行,再将结果给A;A再继续操作.
+      
+### 2.5.3 解决问题的思路
+对于本小节提出的那个计算错误的问题,可以通过 线程同步 来进行解决   
+思路,如下:   
+1. 系统调用t1,然后获取到num的值为0,此时上一把锁,即不允许其他现在操作num
+2. 对num的值进行+1
+3. 解锁,此时num的值为1,其他的线程就可以使用num了,而且是num的值不是0而是1
+4. 同理其他线程在对num进行修改时,都要线上锁,处理完后再解锁,在上锁的过程中不允许其他线程的访问,就保证了数据的正确性   
+   
+   
+   
+### 2.5.4 可以通过另外一种条件判断的方式等待线程1完成之后再执行线程2
+```
+from threading import Thread
+import time
+
+g_num = 0
+g_flag = 1
+
+def test1():
+    global g_num
+    global g_flag
+    if g_flag == 1:
+        for i in range(1000000):
+            g_num += 1
+
+        g_flag = 0
+
+    print("---test1---g_num=%d"%g_num)
+
+def test2():
+    global g_num
+    # 轮询
+    while True:
+        if g_flag != 1:
+            for i in range(1000000):
+                g_num += 1
+            break
+
+    print("---test2---g_num=%d"%g_num)
+
+p1 = Thread(target=test1)
+p1.start()
+
+# time.sleep(3) #取消屏蔽之后 再次运行程序,结果会不一样,,,为啥呢?
+
+p2 = Thread(target=test2)
+p2.start()
+
+print("---g_num=%d---"%g_num)
+
+```   
+**注意:** 但是这种方式效率并不高;其中的轮询操作浪费了很多资源在判断上面;那如何才能让效率变高呢,下面我们介绍互斥锁   
    
 
 ## 2.6 互斥锁
+**当多个线程几乎同时修改某一个共享数据的时候,需要进行同步控制**   
+线程同步能够保证多个线程安全访问竞争资源,最简单的同步机制是引入互斥锁.   
+互斥锁为资源引入一个状态:锁定/非锁定.   
+某个线程要更改共享数据时,先将其锁定,此时资源的状态为"锁定",其他线程不能更改;直到该线程释放资源,将资源的状态变成非锁定,
+其他的线程才能再次锁定该资源.互斥锁保证了每次只有一个线程进行写入操作,从而保证了多线程情况下数据的正确性.   
+threading模块中定义了Lock类,可以方便的处理锁定:   
+```
+# 创建类
+mutex = threading.Lock()
+# 锁定
+mutex.acquire([blocking])
+# 释放
+mutex.release()
+```   
+   
+其中,锁定方法acquire可以有一个blocking参数.   
+* 如果设定blocking为True,则当前线程会堵塞,直到获取到这个锁为止(如果没有指定,那么默认为True)
+* 如果设定blocking为False,则当前线程不会堵塞 
+   
+使用互斥锁实现上面的例子的代码如下:   
+```
+from threading import Thread, Lock
+import time
+
+g_num = 0
+
+def test1():
+    global g_num
+    mutex.acquire()
+    for i in range(1000000):
+        g_num += 1
+    mutex.release()
+    print("---test1---g_num=%d"%g_num)
+
+def test2():
+    global g_num
+    mutex.acquire()
+    for i in range(1000000):
+        g_num += 1
+    mutex.release()
+    print("---test2---g_num=%d"%g_num)
+
+# 创建一把互斥锁,这个锁默认是没有上锁的
+mutex = Lock()
+
+
+
+p1 = Thread(target=test1)
+p1.start()
+
+# time.sleep(3) #取消屏蔽之后 再次运行程序,结果会不一样,,,为啥呢?
+
+p2 = Thread(target=test2)
+p2.start()
+
+print("---g_num=%d---"%g_num)
+
+```   
+   
+运行结果:   
+![mutex](images/5-8.png)            
+   
+   
+
 
 
 ## 2.7 多线程-非共享数据
+对于全局变量,在多线程中要格外小心,否则容易造成数据错乱的情况发生   
+### 1. 非全局变量是否要加锁呢?
+```
+#coding=utf-8
+import threading
+import time
+
+class MyThread(threading.Thread):
+    # 重写 构造方法
+    def __init__(self, num, sleepTime):
+        threading.Thread.__init__(self)
+        self.num = num
+        self.sleepTime = sleepTime
+
+    def run(self):
+        self.num += 1
+        time.sleep(self.sleepTime)
+        print('线程(%s),num=%d'%(self.name, self.num))
+
+if __name__ == '__main__':
+    mutex = threading.Lock()
+    t1 = MyThread(100,5)
+    t1.start()
+    t2 = MyThread(200,1)
+    t2.start()
+
+```   
+   
+运行结果:   
+![非全局变量加锁](images/5-9.png)   
+   
 
 
+   
 ## 2.8 死锁
+在线程间共享多个资源的时候,如果两个线程分别占有一部分资源并且同时等待对方的资源,就会造成死锁.   
+尽管死锁很少发生,但一旦发生就会造成应用的停止响应.下面看一个死锁的例子:   
+```
+#coding=utf-8
+import threading
+import time
 
+class MyThread1(threading.Thread):
+    def run(self):
+        if mutexA.acquire():
+            print(self.name+'------do1----up-----')
+            time.sleep(1)
+            if mutexB.acquire():
+                print(self.name+'------do1-----down-----')
+                mutexB.release()
+            mutexA.release()
 
+class MyThread2(threading.Thread):
+    def fun(self):
+        if mutexB.acquire():
+            print(self.name+'-----do2----up-----')
+            time.sleep(1)
+            if mutexA.acquire():
+                print(self.name+'-----do2-----down-----')
+                mutexA.release()
+            mutexB.release()
+
+mutexA = threading.Lock()
+mutexB = threading.Lock()
+
+if __name__ == '__main__':
+    t1 = MyThread1()
+    t2 = MyThread2()
+    t1.start()
+    t2.start()
+```
+   
+运行结果:   
+![死锁](images/5-10.png)      
+   
+### 3.避免死锁
+* 程序设计时要尽量避免(银行家算法)
+* 添加超时时间   
+   
+### 附录-银行家算法
+[背景知识]   
+一个银行家如何将一定数目的资金安全地借给若干个客户,使这些客户即能借到钱完成要干的事,同时银行家又能收回全部资产而不至于破产,
+这就是银行家问题.这个问题同操作系统中资源分配问题十分相似:银行家就像一个操作系统,客户就像运行的进程,银行家的资金就是系统的资源.   
+   
+[问题的描述]   
+一个银行家拥有一定数量的资金,若干个客户要贷款.每个客户须在一开始就声明他所需贷款的总额,若该客户贷款不超过银行家的资金总数,
+银行家可以接受客户的要求.客户贷款就是以每次一个资金单位(如1万RMB等)的方式进行的,客户在借满所需的全部单位款额之前可能会等待,
+但银行家须保证这种等待是有限的,可完成的.   
+例如:有三个客户C1,C2,C3,向银行家借款,该银行家的资金总额为10个资金单位,其中C1客户要借9个资金单位,C2客户要借3个资金单位,
+C3客户要借8个资金单位,总计20个资金单位. 某一时刻的状态如图所示:
+   
+![banker-suanfa](images/5-11.png)    
+   
+对于a图的状态,按照安全序列的要求,我们选的第一个客户应满足该客户所需的贷款小于等于银行家当前所剩余的钱款,可以看出只有C2客户能被满足:
+C2客户需1个资金单位,小银行家手中的2个资金单位,于是银行家把1个资金单位借给C2客户,使之完成工作并归还所借的3个资金单位的钱,进入b图.同理,
+银行家把4个资金单位借给C3客户,使其完成工作,在c图中,只剩一个客户c1,它需要7个资金单位,这时银行家有8个资金单位,所以C1也能顺利借到钱并完成工作,
+最后(见图d)银行家收回全部10个资金单位,保证不赔本.那么客户序列{C1,C2,C3}就是个安全序列,按照这个序列贷款,银行家才是安全的.
+否则的话,若在图b的状态时,银行家把手中的4个资金单位借给了C1,则出现不安全状态:这时C1,C3均不能完成工作,而银行家手中又没钱了,
+系统陷入僵持局面,银行家也不能收回投资,      
+   
 ## 2.9 同步应用
+### 多个线程有序运行
+```
+#coding=utf-8
+from threading import Thread,Lock
+from time import sleep
+
+class Task1(Thread):
+    def run(self):
+        while True:
+            if lock1.acquire():
+                print('------Task 1------')
+                sleep(0.5)
+                lock2.release()
+
+class Task2(Thread):
+    def run(self):
+        while True:
+            if lock2.acquire():
+                print('------Task 2------')
+                sleep(0.5)
+                lock3.release()
 
 
+class Task3(Thread):
+    def run(self):
+        while True:
+            if lock3.acquire():
+                print('------Task 3------')
+                sleep(0.5)
+                lock1.release()
+
+# 使用Lock创建出的锁默认没有"锁上"
+lock1 = Lock()
+# 创建另外一把锁并"锁上"
+lock2 = Lock()
+lock2.acquire()
+# 创建另外一把锁,并"锁上"
+lock3 = Lock()
+lock3.acquire()
+
+t1 = Task1()
+t2 = Task2()
+t3 = Task3()
+
+t1.start()
+t2.start()
+t3.start()
+```
+   
+运行结果:   
+![同步](images/5-12.png)   
+   
 ## 2.10 条件变量
 
 
