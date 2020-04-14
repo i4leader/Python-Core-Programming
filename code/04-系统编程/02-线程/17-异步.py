@@ -18,4 +18,6 @@ pool.apply_async(func=test,callback=test2)
 
 time.sleep(5)
 
-print('-----主进程-pid=%d----'%os.getpid())
+while True:
+    time.sleep(1)
+    print('-----主进程-pid=%d----'%os.getpid())

@@ -788,3 +788,24 @@ print('-----主进程-pid=%d----'%os.getpid())
    
 运行结果:   
 ![异步](images/5-14.png)   
+   
+## GIL-全局解释器锁
+* Python语言中多进程的效率比多线程高
+* 关键地方用c语言来写
+```
+from ctypes import *
+from threading import Thread
+
+# 加载动态库
+lib = cdll.LoadLibrary("./libdeadloop.so")
+
+# 创建一个子线程，让其执行c语言编写的函数，此函数是一个死循环
+t = Thread(target=lib.Deadloop)
+t.start()
+
+# 主线程,也调用c语言编写的那个死循环函数
+lib.Deadloop()
+
+while True:
+    pass
+```   
