@@ -600,7 +600,8 @@ Condition对象的构造函数可以接受一个Lock/Rlock对象作为参数,如
 
 ### 1. 队列
 先进先出   
-
+   
+### 2. 栈
 先进后出
    
 Python的Queue模块中提供了同步的,线程安全的队列类,包括FIFO(先入先出)队列Queue, LIFO(后入先出) 队列LifoQueue,
@@ -608,13 +609,182 @@ Python的Queue模块中提供了同步的,线程安全的队列类,包括FIFO(�
 可以使用队列来实现线程间的同步.   
 用FIFO队列实现上述生产者与消费者问题的代码如下:   
 ```
+#coding=utf-8
+import threading
+import time
 
+# 在python2中
+# from Queue import Queue
+
+# 在Python3中
+from queue import Queue
+
+class Producer(threading.Thread):
+    def run(self):
+        global queue
+        count = 0
+        while True:
+            if queue.qsize() < 1000:
+                for i in range(100):
+                    count = count +1
+                    msg = '生产产品'+str(count)
+                    queue.put(msg)
+                    print(msg)
+            time.sleep(0.5)
+
+class Consumer(threading.Thread):
+    def run(self):
+        global queue
+        while True:
+            if queue.qsize() > 100:
+                for i in range(3):
+                    msg = self.name + '消费了 ' +queue.get()
+                    print(msg)
+            time.sleep(1)
+
+if __name__ == '__main__':
+    queue = Queue()
+
+    for i in range(500):
+        queue.put('初始产品'+str(i))
+    for i in range(2):
+        p = Producer()
+    for i in range(5):
+        c = Consumer()
+        c.start()
 
 ```   
+      
+### 3.Queue的说明
+1. 对于Queue,在多线程通信之间扮演重要的角色
+2. 添加数据到队列中,使用put()方法
+3. 从队列中取数据,使用get()方法
+4. 判断队列中是否还有数据,使用qsize()方法   
    
+### 4. 生产者和消费者模式说明
+* 为什么要使用生产者和消费者模式
    
+在线程世界里,生产者就是生产数据的线程,消费者就是消费数据的线程.在多线程开发当中,如果生产者处理速度很快,而消费者处理速度很慢,
+那么生产者就必须等待消费者处理完,才能继续生产数据.同样的道理,如果消费者处理能力大于生产者,那么消费者就必须等待生产者.
+为了解决这个问题,就引入了生产者和消费者模式.   
+   
+* 什么是生产者和消费者模式
+         
+生产者消费者模式是通过一个容器来解决生产者和消费者的强耦合问题.生产者和消费者彼此之间不直接通讯,而通过阻塞队列来进行通讯,
+所以生产者生产完数据之后不用等待消费者处理,直接扔给阻塞队列,消费者不找生产者要数据,而是直接从阻塞队列里取,阻塞队列就相当于
+缓冲区,平衡了生产者消费者的处理能力.   
+这个阻塞队列就是用来给生产者和消费者解耦的,纵观大多数设计模式,都会找一个第三者出来进行解耦.      
    
 
 ## 2.13 ThreadLocal
+在多线程环境下,每个线程都有自己的数据.一个线程使用自己的局部变量比使用全局变量好,因为局部变量只有线程自己能看见,不会影响
+其他进程,而全局变量的修改必须加锁.   
+### 1. 使用函数传参的方法
+但是局部变量也有问题,就是函数调用的时候,传递起来很麻烦:   
+```
+def process_student(name):
+    std = Student(name)
+    # std 是局部变量,但是每个函数都要用它,因此必须传递进去
+    do_task_1(std)
+    do_task_2(std)
+    
+def do_task_1(std):
+    do_subtask_1(std)
+    do_subtask_2(std)
+    
+def do_task_2(std):
+    do_subtask_2(std)
+    do_subtask_2(std)
+```   
+   
+每个函数一层一层调用都这么传参数还得了?用全局变量?也不行,因为每个线程处理不同的Student对象,不能共享.   
+   
+### 2. 使用全局字典的方法   
+如果使用一个全局dict来存放所有Student的对象,然后以thread自身作为key获得线程对应的Student对象如何?   
+```
+global_dict = {}
+
+def std_thread(name):
+    std = Student(name)
+    # 把std放到全局变量global_dict中
+    global_dict[threading.current_thread()] = std
+    do_task_1()
+    do_task_2()
+    
+def do_task_1():
+    # 不传入std,而是根据当前线程查找:
+    std = global_dict[threading.current_thread()]
+    ...
+
+def do_task_2():
+    # 任何函数都可以查找出当前线程的std变量
+    std = global_dict[threading.current_thread()]
+    ...
+
+```   
+这种方式理论上是可行的,它最大的优点是消除了std对象的每层函数中的传递问题,但是,每个函数获取std代码有点low.
+    
+### 3. 使用ThreadLocal方式
+ThreadLocal应运而生,不用查找dict,ThreadLocal帮你自动做这件事:   
+```
+#coding=utf-8
+
+import threading
+
+# 创建全局ThreadLocal对象
+local_school = threading.local()
+
+def process_student():
+    # 获取当前线程关联的student:
+    std = local_school.student
+    print('Hello, %s (in %s)'%(std, threading.current_thread().name))
+
+def process_thread(name):
+    # 绑定ThreadLocal的student:
+    local_school.student = name
+    process_student()
 
 
+t1 = threading.Thread(target= process_thread, args=('小明',), name='Thread-A')
+t2 = threading.Thread(target= process_thread, args=('小红',), name='Thread-B')
+t1.start()
+t2.start()
+t1.join()
+t2.join()
+
+```    
+    
+运行结果:  
+![threadlocal](images/5-13.png)      
+  
+## 2.14 异步
+* 同步调用就是你喊你朋友吃饭,你朋友在忙,你等你朋友忙完了,你们一起去
+* 异步调用就是你喊你朋友吃饭,你朋友说知道了,待会忙完去找你,你就去做别的了
+   
+```
+from multiprocessing import Pool
+import time
+import os
+
+def test():
+    print('---进程池中的进程---pid=%d,ppid=%d---'%(os.getpid(), os.getppid()))
+    for i in range(3):
+        print('----%d----'%i)
+        time.sleep(1)
+    return 'hahaha'
+
+def test2(args):
+    print('---callback func--pid=%d'%os.getpid())
+    print('---callback func--args=%s'%args)
+
+pool = Pool(3)
+pool.apply_async(func=test,callback=test2)
+
+time.sleep(5)
+
+print('-----主进程-pid=%d----'%os.getpid())
+
+```      
+   
+运行结果:   
+![异步](images/5-14.png)   
