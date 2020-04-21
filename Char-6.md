@@ -330,19 +330,183 @@ if __name__ == "__main__":
 
 
 ## 2.2 TFTP下载演示
+1. TFTP:
+     TFTP（Trivial File Transfer Protocol,简单文件传输协议）是TCP/IP协议族中的一个用来在客户机与服务器之间进行简单文件传输的协议，基于UDP实现。提供不复杂、开销不大的文件传输服务。端口号为69。
+2. TFTP的报文格式，如图所示
+![tftp](images/6-5.png) 
 
-
+图中显示了5种TFTP报文格式（操作码1和2的报文使用相同的格式）。   
+   
+TFTP报文的头两个字节表示操作码，对于读请求和写请求（WRQ)，文件名字段说明客户要读或写的位于服务器上的文件。模式字段是一个ASCII码串netascii或octet   
+* netascii表示数据是以成行的ascii码字符组成，以两个字节\r \n作为行结束符
+* octet则将数据看做8bit一组的字节流而不作任何解释。
+   
+最后一种TFTP报文类型是差错报文，它的操作码为5.它用于服务器不能处理读请求或者写请求的情况。在文件传输的过程中的读和写也会导致传送这种报文，接着停止传输。
+3. TFTP的工作过程
+     TFTP的工作过程很像停止等待协议，发送完一个文件块后就等待对方的确认，确认时应指明所确认的块号。发送万数据后在规定时间内收不到确认就要重发数据PDU，发送确认PDU的一方弱在规定时间内收不到下一个文件块，也要重发确认PDU。这样保证文件的传送不致因某一个数据报的丢失而告失败。
+     
 ## 2.3 应用:TFTP客户端
+```
+#coding=utf-8
+ 
+#导包
+import sys
+import struct
+from socket import *
+ 
+#全局变量
+g_server_ip = ''
+g_downloadFileName = ''
+ 
+#运行程序格式不正确
+def run_test():
+	"判断运行程序传入参数是否有错"
+	global g_server_ip
+	global g_downloadFileName
+	
+	if len(sys.argv) != 3:
+		print("运行程序格式不正确")
+		print('-'*30)
+		print("tips:")
+		print("python3 tftp_download.py 192.168.1.1 test.jpg")
+		print('-'*30)
+		exit()
+	else:
+		g_server_ip = sys.argv[1]
+		g_downloadFileName = sys.argv[2]
+ 
+		#print(g_server_ip, g_downloadFileName)
+ 
+#主程序
+def main():
+	run_test()
+ 
+	# 打包
+	sendDataFirst = struct.pack('!H%dsb5sb'%len(g_downloadFileName), 1, g_downloadFileName.encode('gb2312'), 0, 'octet'.encode('gb2312'), 0)
+ 
+	# 创建UDP套接字
+	s = socket(AF_INET, SOCK_DGRAM)
+ 
+	# 发送下载文件请求数据到指定服务器
+	s.sendto(sendDataFirst, (g_server_ip, 69)) #第一次发送, 连接tftp服务器
+ 
+	downloadFlag = True #表示能够下载数据，即不擅长，如果是false那么就删除
+	fileNum = 0 #表示接收文件的序号
+ 
+	# 以二进制格式创建新文件
+	f = open(g_downloadFileName, 'wb')
+ 
+	while True:
+	#3. 接收服务发送回来的应答数据
+		responseData = s.recvfrom(1024)
+ 
+		#print(responseData)
+		
+		recvData, serverInfo = responseData
+ 
+		# 解包
+		packetOpt = struct.unpack("!H", recvData[:2])  #操作码
+		packetNum = struct.unpack("!H", recvData[2:4]) #块编号
+ 
+		#print(packetOpt, packetNum)
+ 
+		# 接收到数据包
+		if packetOpt[0] == 3: #optNum是一个元组(3,)
+			# 计算出这次文件的序号，是上一次接收到的+1。
+			fileNum += 1
+ 
+			# 文件超过了65535 那么就又从0开始计数。
+			if fileNum == 65536:
+				fileNum = 0
+ 
+			# 包编号是否和上次相等
+			if fileNum == packetNum[0]:
+				f.write(recvData[4:]) #写入文件
+				fileNum = packetNum[0]
+ 
+			# 整理ACK的数据包
+			ackData = struct.pack("!HH", 4, packetNum[0])
+			s.sendto(ackData, serverInfo)
+ 
+		# 错误应答
+		elif packetOpt[0] == 5:
+			print("sorry，没有这个文件!")
+			downloadFlag = False
+			break
+ 
+		else:
+			print(packetOpt[0])
+			break
+ 
+		# 接收完成，退出程序。
+		if len(recvData) < 516:
+			downloadFlag = True
+			print("%s文件下载完毕!"%g_downloadFileName)
+			break
+ 
+	if downloadFlag == True:
+		f.close()
+	else:
+		os.unlink(g_downloadFileName) #没有下载的文件，就删除刚创建的文件。
+ 
+ 
+#调用main函数
+if __name__ == '__main__':
+	main()
 
-
+```
+   
+运行结果:   
+![tftp](images/6-6.png)   
+   
 ## 2.4 udp广播
+### 网络编程中的广播
+```
+#coding=utf-8
+
+import socket, sys
+
+dest = ('<broadcast>', 7788)
+
+# 创建udp套接字
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# 对这个需要发送广播数据的套接字进行修改设置,否则不能发送广播数据
+s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST,1)
+
+# 以广播的形式发送数据到本网络的所有电脑中
+s.sendto("Hi", dest)
+
+print("等待对方回复(按CTRL+C退出)")
+
+while True:
+    (buf, address) = s.recvfrom(2048)
+    print("Received from %s: %s"%(adress, buf))
+```
 
 
-
-## 2.5 tcp相关介绍
-
-
-
+## 2.5 tcp(传输控制协议)相关介绍
+### udp(用户数据包协议)通信模型
+udp通信模型中,在通信开始之前,不需要建立相关的链接,只需要发送数据即可,类似于生活中"写信"   
+tcp特点:
+   
+* 稳定
+* 相对于udp而言,要慢一点
+* web服务器都是用的tcp
+   
+udp特点   
+* 不稳定
+* 适当比tcp要快一些
+   
+![udp模型](images/6-7.png)     
+   
+### tcp通信模型
+udp通信模型中,在通信开始之前,一定要建立相关的链接,才能发送数据,类似于生活中的"打电话"   
+![tcp模型](images/6-8.png)   
+   
+   
+   
+   
+   
 ## 2.6 tcp服务器
 
 
