@@ -508,12 +508,88 @@ udp通信模型中,在通信开始之前,一定要建立相关的链接,才能�
    
    
 ## 2.6 tcp服务器
+如果上面的电话机过程一样,在程序中,如果想要完成一个tcp服务器的功能,
+1. socket创建一个套接字
+2. bind绑定ip和port
+3. listen 是套接字变为可以被动链接
+4. accept等待客户端的链接
+5. recv/send 接受发送数据
+   
+一个很简单的tcp服务器如下:   
+   
+```
+#coding=utf-8
 
+from socket import *
 
+# 创建Socket
+serverSocket = socket(AF_INET, SOCK_STREAM)
+
+# 绑定
+serverSocket.bind((("", 8899)))
+
+# listen,数字"5"表示已建立和未建立的队列总长度
+serverSocket.listen(5)
+
+# clientSocket表示新的客户端, clientInfo表示新的客户端的ip以及短裤
+clientSocket, clientInfo = serverSocket.accept()
+
+# 接受数据,最大字节数为1024
+recvData = clientSocket.recv(1024)
+
+# 打印
+print("%s:%s"%(str(clientInfo), recvData))
+
+# 关闭套接字
+clientSocket.close()
+serverSocket.close()
+```
+   
+运行结果:   
+![tcpsrv](images/6-9.png)   
+   
 
 ## 2.7 tcp客户端
+tcp客户端,并不是像之前一个段子:一个顾客去饭馆吃饭,这个顾客要加菜,就问服务员咱们饭店有客户端吗,然后这个服务员非常客气的说道:先生,我们饭店不用客户端,我们直接送到您的餐桌上.   
+如果,不学习网络的知识是不是说不定也会发生那样的笑话.  
+   
+所谓的服务器端:就是提供服务的一方,而客户端,就是需要被服务的一方   
+   
+### tcp客户端构建流程
+tcp的客户端要比服务器端简单很多,如果说服务器端是需要自己买手机,插手机卡,设置铃声,等待别人打电话流程的话,那么客户端就只需要找一个电话亭,拿起电话拨打即可,流程要少很多   
+   
+示例代码:      
+```
+#coding=utf-8
+from socket import *
 
+# 创建socket
+tcpClientSocket = socket(AF_INET, SOCK_STREAM)
 
+# 链接服务器
+srvAddr = ("192.168.33.144", 8899)
+tcpClientSocket.connect(srvAddr)
+
+# 提示用户输入数据
+sendData = input("请输入您要发送的数据:")
+sendData = sendData.encode()
+
+tcpClientSocket.send(sendData)
+
+# 接受对方发送过来的数据,最大接受1024个字节
+recvData = tcpClientSocket.recv(1024)
+print("接受到的数据为:%s"%recvData)
+
+# 关闭套接字
+tcpClientSocket.close()
+```   
+   
+运行结果:   
+![tcpclient](images/6-10.png)   
+   
+![tcpcli1](images/6-10-1.png)   
+     
+   
 ## 2.8 应用:模拟qq聊天 
 
 
