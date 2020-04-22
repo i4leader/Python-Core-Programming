@@ -591,10 +591,120 @@ tcpClientSocket.close()
      
    
 ## 2.8 应用:模拟qq聊天 
+代码如下:
+```
+#!/usr/bin/python3
+#coding=utf-8
+from socket import *
+
+# 创建socket
+tcpSrvSocket = socket(AF_INET, SOCK_STREAM)
+
+# 绑定本地信息
+address = ('', 7788)
+tcpSrvSocket.bind(address)
+
+# 使用socket创建的套接字默认的属性是主动的,使用listen将其变为被动等待接收别人的链接
+tcpSrvSocket.listen(5)
+
+while True:
+
+    # 如果有新的客户端来链接服务器,那么就产生一个新型的套接字专门为这个客户端服务器
+    # newSocket用来为这个客户端服务
+    # tcpSrvSocket 就可以省下来专门等待其他新客户端的链接
+    newSocket, clientAddr = tcpSrvSocket.accept()
+
+    while True:
+
+        # 接收对方发送过来的数据,最大接受1024个字节
+        recvData = newSocket.recv(1024)
+        recvData = recvData.decode(encoding="utf-8")
+
+        # 如果接受的数据的长度为0,则意味着客户端关闭了链接
+        if len(recvData)>0:
+            print('recv:%s'%recvData)
+        else:
+            break
+
+        # 发送一些数据到客户端
+        sendData = input("send:")
+        sendData = sendData.encode()
+        newSocket.send(sendData)
+
+    # 关闭这个客户端服务器的套接字,只要关闭了,就意味着为不能再为这个客户端服务了,如果还需要服务,只能重新运行程序
+    newSocket.close()
+
+
+# 关闭监听套接字,只要这个套接字关闭了,就意味着整个程序不再接受任何新的客户端连接
+tcpSrvSocket.close()
+
+```
+   
+运行结果:
+![client](images/6-11-1.png)   
+   
+![server](images/6-11-2.png)   
+
+# 3.网络通信过程详解
+## 3.1 Packet Tracer网络通信过程
+Packet Tracer 是由Cisco(著名网络公司,思科)公司发布的一个辅助学习工具,
+为学习思科网络课程的初学者去设计,配置,排除网络故障提供了网络模拟环境.
+用户可以在软件的图形界面上直接使用拖拽方法建立网络拓扑,并可提供数据包在网络中进行详细的处理过程,观察网络实时运行情况.   
+
+
+## 3.2 2台电脑组网
 
 
 
+## 3.3 通过集线器组网
 
 
 
-# 3.网络
+## 3.4 通过交换机组网
+
+
+
+## 3.5 通过路由器组网
+
+
+
+## 3.6 交换机,路由器,服务器组网
+
+
+
+## 3.7 tcp三次握手
+
+
+
+## 3.8 tcp四次握手
+
+
+
+## 3.9 tcp十种状态
+
+
+
+## 3.10 tcp的2MSL问题
+
+
+
+## 3.11 tcp长连接和短连接
+
+
+
+## 3.12 listen的队列长度
+
+
+
+## 3.13 手动配置IP
+
+
+
+## 3.14 常见网络攻击案例
+
+
+
+## 3.14 家庭上网解析
+
+
+
